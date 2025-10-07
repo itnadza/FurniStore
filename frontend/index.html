@@ -14,6 +14,7 @@
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
   <link href="css/tiny-slider.css" rel="stylesheet">
   <link href="css/style.css" rel="stylesheet">
+  <link href="css/spapp.css" rel="stylesheet">
 
   <title>Furni | SPA</title>
 </head>
@@ -22,7 +23,7 @@
   <!-- NAVBAR -->
   <nav class="custom-navbar navbar navbar-expand-md navbar-dark bg-dark" aria-label="Furni navigation bar">
     <div class="container">
-      <a class="navbar-brand" href="#" data-page="home">Furni<span>.</span></a>
+      <a class="navbar-brand" href="#home" data-spapp-link>Furni<span>.</span></a>
 
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarsFurni" aria-controls="navbarsFurni" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
@@ -30,21 +31,30 @@
 
       <div class="collapse navbar-collapse" id="navbarsFurni">
         <ul class="custom-navbar-nav navbar-nav ms-auto mb-2 mb-md-0">
-          <li class="nav-item"><a class="nav-link active" href="#" data-page="home">Home</a></li>
-          <li><a class="nav-link" href="#" data-page="shop">Shop</a></li>
-          <li><a class="nav-link" href="#" data-page="about">About us</a></li>
-          <li><a class="nav-link" href="#" data-page="services">Services</a></li>
-          <li><a class="nav-link" href="#" data-page="blog">Blog</a></li>
-          <li><a class="nav-link" href="#" data-page="contact">Contact us</a></li>
-          <li><a class="nav-link" href="#" data-page="profile"><img src="images/user.svg" alt="Profile"></a></li>
-          <li><a class="nav-link" href="#" data-page="cart"><img src="images/cart.svg" alt="Cart"></a></li>
+          <li class="nav-item"><a class="nav-link active" href="#home" data-spapp-link>Home</a></li>
+          <li><a class="nav-link" href="#shop" data-spapp-link>Shop</a></li>
+          <li><a class="nav-link" href="#about" data-spapp-link>About us</a></li>
+          <li><a class="nav-link" href="#services" data-spapp-link>Services</a></li>
+          <li><a class="nav-link" href="#blog" data-spapp-link>Blog</a></li>
+          <li><a class="nav-link" href="#contact" data-spapp-link>Contact us</a></li>
+          <li><a class="nav-link" href="#profile" data-spapp-link><img src="images/user.svg" alt="Profile"></a></li>
+          <li><a class="nav-link" href="#cart" data-spapp-link><img src="images/cart.svg" alt="Cart"></a></li>
         </ul>
       </div>
     </div>
   </nav>
 
-  <!-- MAIN CONTENT -->
-  <main id="app" class="fade"></main>
+  <!-- SPApp Container -->
+  <main id="spapp" role="main">
+    <section id="home" data-load="home.html"></section>
+    <section id="shop" data-load="shop.html"></section>
+    <section id="about" data-load="about.html"></section>
+    <section id="services" data-load="services.html"></section>
+    <section id="blog" data-load="blog.html"></section>
+    <section id="contact" data-load="contact.html"></section>
+    <section id="profile" data-load="profile.html"></section>
+    <section id="cart" data-load="cart.html"></section>
+  </main>
 
   <!-- FOOTER -->
   <footer class="bg-dark text-light py-4 text-center">
@@ -53,8 +63,10 @@
     </div>
   </footer>
 
-  <!-- JS Files -->
+  <!-- JS Files (RELATIVE paths!) -->
+  <script src="js/jquery.min.js"></script>
+  <script src="js/jquery.spapp.min.js"></script>
   <script src="js/bootstrap.bundle.min.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/script.js"></script>
 </body>
 </html>
