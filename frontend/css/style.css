@@ -712,3 +712,12 @@ textarea {
     height: 50px;
     border-radius: 50%;
     background: rgba(59, 93, 80, 0.2); }
+
+#app {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+#app.show {
+  opacity: 1;
+}
+
