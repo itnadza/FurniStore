@@ -1,2 +1,2 @@
 Full-stack project for Web Programming course.
-Furni - online store that sels furniture 
+Furni - online store that selLs furniture 

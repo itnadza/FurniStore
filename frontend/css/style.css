@@ -7,9 +7,43 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
 
-body {
-  overflow-x: hidden;
-  position: relative; }
+.hero2 {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  background: transparent; /* remove white flash */
+}
+
+/* Video fills perfectly, with nice rounded edges */
+.hero2 video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;       /* full viewport width */
+  height: 100vh;      /* full viewport height */
+  transform: translate(-50%, -50%);
+  object-fit: cover;
+  z-index: -2;
+  border-radius: 0 0 25px 25px; /* only bottom rounded corners */
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5); /* soft shadow at bottom */
+  background: #000; /* avoids light flashes on video edges */
+}
+
+
+.hero2 .content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: white;
+  top: 50%;
+  transform: translateY(-50%);
+  text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+}
+
+
+
 
 body {
   font-family: "Inter", sans-serif;
@@ -17,7 +51,10 @@ body {
   line-height: 28px;
   color: #6a6a6a;
   font-size: 14px;
-  background-color: #eff2f1; }
+  background-color: #eff2f1;
+  overflow-x: hidden;
+
+ }
 
 a {
   text-decoration: none;
@@ -98,7 +135,7 @@ a {
         margin-right: 20px; }
 
 .hero {
-  background: #3b5d50;
+  background: rgb(59, 93, 80);
   padding: calc(4rem - 30px) 0 0rem 0; }
   @media (min-width: 768px) {
     .hero {
@@ -124,41 +161,46 @@ a {
     margin-bottom: 30px; }
   .hero .hero-img-wrap {
     position: relative; }
-    .hero .hero-img-wrap img {
-      position: relative;
-      top: 0px;
-      right: 0px;
-      z-index: 2;
-      max-width: 780px;
-      left: -20px; }
-      @media (min-width: 768px) {
-        .hero .hero-img-wrap img {
-          right: 0px;
-          left: -100px; } }
-      @media (min-width: 992px) {
-        .hero .hero-img-wrap img {
-          left: 0px;
-          top: -80px;
-          position: absolute;
-          right: -50px; } }
-      @media (min-width: 1200px) {
-        .hero .hero-img-wrap img {
-          left: 0px;
-          top: -80px;
-          right: -100px; } }
     .hero .hero-img-wrap:after {
-      content: "";
-      position: absolute;
-      width: 255px;
-      height: 217px;
-      background-image: url("../images/dots-light.svg");
-      background-size: contain;
-      background-repeat: no-repeat;
-      right: -100px;
-      top: -0px; }
-      @media (min-width: 1200px) {
-        .hero .hero-img-wrap:after {
-          top: -40px; } }
+  content: "";
+  position: absolute;
+  width: 255px;
+  height: 217px;
+  background-image: url("../images/dots-light.svg");
+  background-size: contain;
+  background-repeat: no-repeat;
+  right: 0;      /* default for smaller screens */
+  top: 0;
+  z-index: -1;
+}
+
+@media (min-width: 768px) {
+  .hero .hero-img-wrap:after {
+    width: 200px;
+    height: 170px;
+    right: 10px;  /* slightly offset for medium screens */
+    top: -10px;
+  }
+}
+
+@media (min-width: 992px) {
+  .hero .hero-img-wrap:after {
+    width: 220px;
+    height: 190px;
+    right: 20px;  /* decorative offset */
+    top: -20px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .hero .hero-img-wrap:after {
+    width: 255px;
+    height: 217px;
+    right: -100px;  /* original decorative position on very large screens */
+    top: -40px;
+  }
+}
+
 
 .btn {
   font-weight: 600;
