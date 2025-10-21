@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="author" content="Untree.co">
+  <link rel="shortcut icon" href="favicon.png">
+
+  <meta name="description" content="">
+  <meta name="keywords" content="bootstrap, bootstrap4">
+
+  <link href="css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <link href="css/tiny-slider.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+  <link href="css/spapp.css" rel="stylesheet">
+
+  <title>Furni | SPAPP</title>
+</head>
+
+<body>
+
+  <nav class="custom-navbar navbar navbar-expand-md navbar-dark bg-dark" aria-label="Furni navigation bar">
+    <div class="container">
+      <a class="navbar-brand" href="#home" data-spapp-link>Furni<span>.</span></a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarsFurni" aria-controls="navbarsFurni" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarsFurni">
+        <ul class="custom-navbar-nav navbar-nav ms-auto mb-2 mb-md-0">
+          <li class="nav-item"><a class="nav-link active" href="#home" data-spapp-link>Home</a></li>
+          <li><a class="nav-link" href="#shop" data-spapp-link>Shop</a></li>
+          <li><a class="nav-link" href="#about" data-spapp-link>About us</a></li>
+          <li><a class="nav-link" href="#services" data-spapp-link>Services</a></li>
+          <li><a class="nav-link" href="#blog" data-spapp-link>Blog</a></li>
+          <li><a class="nav-link" href="#contact" data-spapp-link>Contact us</a></li>
+          <li><a class="nav-link" href="#login" data-spapp-link><img src="assets/images/user.svg" alt="Login/Register"></a></li>
+          <li><a class="nav-link" href="#cart" data-spapp-link><img src="assets/images/cart.svg" alt="Cart"></a></li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+
+  <main id="spapp" role="main">
+    <section id="home" data-load="home.html"></section>
+    <section id="shop" data-load="shop.html"></section>
+    <section id="about" data-load="about.html"></section>
+    <section id="services" data-load="services.html"></section>
+    <section id="blog" data-load="blog.html"></section>
+    <section id="article1" data-load="/articles/article1.html"></section>
+    <section id="article2" data-load="/articles/article2.html"></section>
+    <section id="article3" data-load="/articles/article3.html"></section>
+    <section id="contact" data-load="contact.html"></section>
+    <section id="login" data-load="login.html"></section>
+    <section id="register" data-load="register.html"></section>
+    <section id="cart" data-load="cart.html"></section>
+  </main>
+
+
+  <footer class="bg-dark text-light py-4 text-center">
+    <div class="container">
+      <p class="mb-0">&copy; 2025 Furni. All Rights Reserved.</p>
+    </div>
+  </footer>
+
+  <script src="js/jquery.min.js"></script>
+  <script src="js/jquery.spapp.min.js"></script>
+  <script src="js/bootstrap.bundle.min.js"></script>
+  <script src="js/script.js"></script>
+</body>
+</html>
