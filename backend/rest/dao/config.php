@@ -1,17 +1,16 @@
 <?php
 class Database {
    private static $host = 'localhost';
-   private static $dbName = 'furni_store';
+   private static $dbName = 'FurniStore';   // match your DB name exactly
    private static $username = 'root';
    private static $password = '';
    private static $connection = null;
-
 
    public static function connect() {
        if (self::$connection === null) {
            try {
                self::$connection = new PDO(
-                   "mysql:host=" . self::$host . ";dbname=" . self::$dbName,
+                   "mysql:host=" . self::$host . ";port=3309;dbname=" . self::$dbName,
                    self::$username,
                    self::$password,
                    [
@@ -26,3 +25,4 @@ class Database {
        return self::$connection;
    }
 }
+?>
