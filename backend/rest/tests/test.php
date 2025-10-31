@@ -2,38 +2,32 @@
 require_once '../dao/UserDao.php';
 require_once '../dao/OrderDao.php';
 
-
-
 $userDao = new UserDao();
 $orderDao = new OrderDao();
 
-
-// Insert a new user (Customer)
+// Insert a new user 
 $userDao->insert([
-   'name' => 'John Doe',
-   'email' => 'john@example.com',
-   'password' => password_hash('password123', PASSWORD_DEFAULT),
-   'role' => 'Customer'
+   'first_name' => 'Nadža',
+   'last_name' => 'Hasanović',
+   'email' => 'nadza@gmail.com',
+   'password' => password_hash('nadza123', PASSWORD_DEFAULT),
+   'age' => 20
 ]);
-
 
 // Insert a new order
 $orderDao->insert([
    'user_id' => 1,
    'status' => 'Pending',
-   'total_price' => 25.98,
-   'order_date' => date('Y-m-d H:i:s')
+   'total_amount' => 30.98,
+   'order_date' => date('Y-m-d H:i:s'),
+   'address' => '123 Main Street'
 ]);
 
 
-// Fetch all users
 $users = $userDao->getAll();
 print_r($users);
 
 
-// Fetch all orders
 $orders = $orderDao->getAll();
 print_r($orders);
-
-
 ?>
