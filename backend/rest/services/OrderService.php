@@ -14,9 +14,8 @@ class OrderService extends BaseService {
         $this->productService = new ProductService();
     }
 
-    // Business Logic: Create order from cart
     public function createOrderFromCart($userId, $orderData) {
-        // Validate required fields
+      
         $required = ['shipping_address', 'payment_method'];
         foreach ($required as $field) {
             if (empty($orderData[$field])) {
@@ -24,7 +23,7 @@ class OrderService extends BaseService {
             }
         }
 
-        // Get cart items
+      
         $cartItems = $this->cartService->getCartWithDetails($userId);
         if (empty($cartItems)) {
             throw new Exception("Cart is empty");
@@ -48,10 +47,9 @@ class OrderService extends BaseService {
         $orderData['total_amount'] = $totalAmount;
         $orderData['status'] = 'pending';
 
-        // Create the order
+        
         $orderId = $this->dao->create($orderData);
 
-        // Create order items and update stock
         foreach ($cartItems as $item) {
             $orderItemData = [
                 'order_id' => $orderId,
@@ -61,10 +59,10 @@ class OrderService extends BaseService {
                 'subtotal' => $item['price'] * $item['quantity']
             ];
             
-            // Add order item
+           
             $this->dao->addOrderItem($orderItemData);
 
-            // Update product stock
+         
             $this->productService->updateStock($item['product_id'], -$item['quantity']);
         }
 
@@ -74,7 +72,6 @@ class OrderService extends BaseService {
         return $orderId;
     }
 
-    // Business Logic: Update order status with validation
     public function updateOrderStatus($orderId, $status) {
         $allowedStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
         
@@ -100,7 +97,7 @@ class OrderService extends BaseService {
         return $this->dao->update($orderId, ['status' => $status]);
     }
 
-    // Business Logic: Restore stock when order is cancelled
+   
     private function restoreOrderStock($orderId) {
         $orderItems = $this->dao->getOrderItems($orderId);
         
@@ -109,7 +106,7 @@ class OrderService extends BaseService {
         }
     }
 
-    // Business Logic: Validate stock for order reactivation
+   
     private function validateOrderStock($orderId) {
         $orderItems = $this->dao->getOrderItems($orderId);
         
@@ -125,12 +122,12 @@ class OrderService extends BaseService {
         }
     }
 
-    // Business Logic: Get user's orders
+
     public function getUserOrders($userId) {
         return $this->dao->getUserOrders($userId);
     }
 
-    // Business Logic: Get order with full details
+    
     public function getOrderWithDetails($orderId) {
         $order = $this->dao->getById($orderId);
         if (!$order) {
@@ -141,12 +138,11 @@ class OrderService extends BaseService {
         return $order;
     }
 
-    // Business Logic: Calculate order statistics
     public function getOrderStatistics($userId = null) {
         return $this->dao->getOrderStatistics($userId);
     }
 
-    // Business Logic: Validate order data before creation
+
     public function validateOrderData($orderData) {
         $errors = [];
 

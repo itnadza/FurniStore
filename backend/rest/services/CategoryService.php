@@ -7,14 +7,14 @@ class CategoryService extends BaseService {
         parent::__construct(new CategoryDao());
     }
 
-    // Business Logic: Validate category data
+    // Validate category data
     public function create($categoryData) {
         $errors = $this->validateCategoryData($categoryData);
         if (!empty($errors)) {
             throw new Exception(implode(', ', $errors));
         }
 
-        // Check for duplicate category name
+       
         $existing = $this->dao->getCategoryByName($categoryData['name']);
         if ($existing) {
             throw new Exception("Category name already exists");
@@ -23,14 +23,14 @@ class CategoryService extends BaseService {
         return $this->dao->create($categoryData);
     }
 
-    // Business Logic: Update category with validation
+    
     public function update($id, $categoryData) {
         $errors = $this->validateCategoryData($categoryData, false);
         if (!empty($errors)) {
             throw new Exception(implode(', ', $errors));
         }
 
-        // Check for duplicate category name (excluding current category)
+
         if (isset($categoryData['name'])) {
             $existing = $this->dao->getCategoryByName($categoryData['name']);
             if ($existing && $existing['id'] != $id) {
@@ -59,18 +59,18 @@ class CategoryService extends BaseService {
         return $errors;
     }
 
-    // Business Logic: Get categories with product counts
+    
     public function getCategoriesWithProductCounts() {
         return $this->dao->getCategoriesWithProductCounts();
     }
 
-    // Business Logic: Check if category can be deleted (no products associated)
+    
     public function canDeleteCategory($categoryId) {
         $products = $this->dao->getProductsByCategory($categoryId);
         return empty($products);
     }
 
-    // Business Logic: Delete category only if no products are associated
+    // Delete category only if no products are associated
     public function delete($id) {
         if (!$this->canDeleteCategory($id)) {
             throw new Exception("Cannot delete category: There are products associated with this category");
