@@ -20,16 +20,8 @@ class CartDao extends BaseDao {
         return $stmt->fetchAll();
     }
 
-    public function clearCartByUserId($user_id) {
-        $stmt = $this->connection->prepare("DELETE FROM cart WHERE user_id = :user_id");
-        $stmt->bindParam(':user_id', $user_id);
-        return $stmt->execute();
-    }
-
-    // 🚨 ADD THESE MISSING METHODS:
-
     public function getCartWithDetails($userId) {
-        $sql = "SELECT c.*, p.name, p.price, p.image_url 
+        $sql = "SELECT c.*, p.name, p.price, p.image_url, p.stock 
                 FROM cart c 
                 JOIN products p ON c.product_id = p.id 
                 WHERE c.user_id = :user_id";
@@ -59,13 +51,23 @@ class CartDao extends BaseDao {
     }
 
     public function addToCart($userId, $productId, $quantity) {
-        $sql = "INSERT INTO cart (user_id, product_id, quantity) 
-                VALUES (:user_id, :product_id, :quantity)";
-        $stmt = $this->connection->prepare($sql);
-        $stmt->bindParam(':user_id', $userId);
-        $stmt->bindParam(':product_id', $productId);
-        $stmt->bindParam(':quantity', $quantity);
-        return $stmt->execute();
+        // Check if item already exists in cart
+        $existingItem = $this->getCartItem($userId, $productId);
+        
+        if ($existingItem) {
+            // Update quantity if item exists
+            $newQuantity = $existingItem['quantity'] + $quantity;
+            return $this->updateCartItem($userId, $productId, $newQuantity);
+        } else {
+            // Insert new item
+            $sql = "INSERT INTO cart (user_id, product_id, quantity) 
+                    VALUES (:user_id, :product_id, :quantity)";
+            $stmt = $this->connection->prepare($sql);
+            $stmt->bindParam(':user_id', $userId);
+            $stmt->bindParam(':product_id', $productId);
+            $stmt->bindParam(':quantity', $quantity);
+            return $stmt->execute();
+        }
     }
 
     public function removeFromCart($userId, $productId) {

@@ -62,7 +62,8 @@ Flight::route('GET /products/@id', function($id){
  *             @OA\Property(property="price", type="number", format="float", example=199.99),
  *             @OA\Property(property="category_id", type="integer", example=1),
  *             @OA\Property(property="stock_quantity", type="integer", example=50),
- *             @OA\Property(property="image_url", type="string", example="chair.jpg")
+ *             @OA\Property(property="image_url", type="string", example="chair.jpg"),
+ *             @OA\Property(property="featured", type="boolean", example=true)
  *         )
  *     ),
  *     @OA\Response(
@@ -104,7 +105,8 @@ Flight::route('POST /products', function(){
  *             @OA\Property(property="name", type="string", example="Updated Chair"),
  *             @OA\Property(property="description", type="string", example="Updated description"),
  *             @OA\Property(property="price", type="number", format="float", example=249.99),
- *             @OA\Property(property="stock_quantity", type="integer", example=25)
+ *             @OA\Property(property="stock_quantity", type="integer", example=25),
+ *             @OA\Property(property="featured", type="boolean", example=true)
  *         )
  *     ),
  *     @OA\Response(
@@ -173,6 +175,80 @@ Flight::route('DELETE /products/@id', function($id){
 Flight::route('GET /products/category/@category_id', function($category_id){
     $productService = new ProductService();
     $products = $productService->getProductsByCategory($category_id);
+    Flight::json(['success' => true, 'data' => $products]);
+});
+
+/**
+ * @OA\Get(
+ *     path="/products/featured",
+ *     tags={"products"},
+ *     summary="Get featured products",
+ *     @OA\Parameter(
+ *         name="limit",
+ *         in="query",
+ *         required=false,
+ *         description="Number of featured products to return",
+ *         @OA\Schema(type="integer", example=10)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Featured products"
+ *     )
+ * )
+ */
+Flight::route('GET /products/featured', function(){
+    $limit = Flight::request()->query['limit'] ?? 10;
+    $productService = new ProductService();
+    $products = $productService->getFeaturedProducts($limit);
+    Flight::json(['success' => true, 'data' => $products]);
+});
+
+/**
+ * @OA\Get(
+ *     path="/products/search/{search_term}",
+ *     tags={"products"},
+ *     summary="Search products",
+ *     @OA\Parameter(
+ *         name="search_term",
+ *         in="path",
+ *         required=true,
+ *         description="Search term",
+ *         @OA\Schema(type="string", example="chair")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Search results"
+ *     )
+ * )
+ */
+Flight::route('GET /products/search/@search_term', function($search_term){
+    $productService = new ProductService();
+    $products = $productService->searchProducts($search_term);
+    Flight::json(['success' => true, 'data' => $products]);
+});
+
+/**
+ * @OA\Get(
+ *     path="/products/low-stock",
+ *     tags={"products"},
+ *     summary="Get low stock products",
+ *     @OA\Parameter(
+ *         name="threshold",
+ *         in="query",
+ *         required=false,
+ *         description="Stock threshold",
+ *         @OA\Schema(type="integer", example=10)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Low stock products"
+ *     )
+ * )
+ */
+Flight::route('GET /products/low-stock', function(){
+    $threshold = Flight::request()->query['threshold'] ?? 10;
+    $productService = new ProductService();
+    $products = $productService->getLowStockProducts($threshold);
     Flight::json(['success' => true, 'data' => $products]);
 });
 ?>

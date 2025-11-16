@@ -9,8 +9,6 @@ class UserDao extends BaseDao {
         parent::__construct($this->table_name);
     }
 
-   
-
     public function getAll() {
         return parent::getAll();
     }
@@ -31,13 +29,16 @@ class UserDao extends BaseDao {
         return parent::delete($id);
     }
 
-    //CUSTOM METHODS 
-
+    // CUSTOM METHODS 
     public function getByEmail($email) {
         $stmt = $this->connection->prepare("SELECT * FROM users WHERE email = :email");
         $stmt->bindParam(':email', $email);
         $stmt->execute();
         return $stmt->fetch();
+    }
+
+    public function getUserByEmail($email) {
+        return $this->getByEmail($email);
     }
 
     public function createUser($first_name, $last_name, $email, $password, $age) {
@@ -51,11 +52,9 @@ class UserDao extends BaseDao {
         ]);
     }
 
-    public function getByAdminId($id) {
-        $stmt = $this->connection->prepare("SELECT * FROM users WHERE id = :id");
-        $stmt->bindParam(':id', $id);
-        $stmt->execute();
-        return $stmt->fetch();
+    // Alias for insert to match service calls
+    public function create($data) {
+        return $this->insert($data);
     }
 }
 ?>

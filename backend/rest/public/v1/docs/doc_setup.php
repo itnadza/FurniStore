@@ -15,7 +15,7 @@
  */
 /**
  * @OA\Server(
- *     url="http://localhost/backend/rest",
+ *     url="http://localhost/FurniStore/backend/rest",
  *     description="Development API server"
  * )
  */

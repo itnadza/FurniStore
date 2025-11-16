@@ -82,6 +82,7 @@ Flight::route('POST /users/register', function(){
     $userService = new UserService();
     try {
         $result = $userService->register($data);
+        unset($result['password']);
         Flight::json(['success' => true, 'data' => $result, 'message' => 'User registered successfully']);
     } catch (Exception $e) {
         Flight::json(['success' => false, 'message' => $e->getMessage()], 400);

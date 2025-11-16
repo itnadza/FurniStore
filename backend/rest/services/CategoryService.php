@@ -14,25 +14,24 @@ class CategoryService extends BaseService {
             throw new Exception(implode(', ', $errors));
         }
 
-       
-        $existing = $this->dao->getCategoryByName($categoryData['name']);
+        // Check if category name already exists
+        $existing = $this->dao->getByName($categoryData['name']);
         if ($existing) {
             throw new Exception("Category name already exists");
         }
 
-        return $this->dao->create($categoryData);
+        return $this->dao->insert($categoryData);
     }
 
-    
     public function update($id, $categoryData) {
         $errors = $this->validateCategoryData($categoryData, false);
         if (!empty($errors)) {
             throw new Exception(implode(', ', $errors));
         }
 
-
+        // Check if category name already exists (excluding current category)
         if (isset($categoryData['name'])) {
-            $existing = $this->dao->getCategoryByName($categoryData['name']);
+            $existing = $this->dao->getByName($categoryData['name']);
             if ($existing && $existing['id'] != $id) {
                 throw new Exception("Category name already exists");
             }
@@ -56,15 +55,17 @@ class CategoryService extends BaseService {
             $errors[] = "Category name too short (min 2 characters)";
         }
 
+        if (isset($data['description']) && strlen($data['description']) > 500) {
+            $errors[] = "Description too long (max 500 characters)";
+        }
+
         return $errors;
     }
 
-    
     public function getCategoriesWithProductCounts() {
         return $this->dao->getCategoriesWithProductCounts();
     }
 
-    
     public function canDeleteCategory($categoryId) {
         $products = $this->dao->getProductsByCategory($categoryId);
         return empty($products);
@@ -77,6 +78,11 @@ class CategoryService extends BaseService {
         }
 
         return $this->dao->delete($id);
+    }
+
+    // Get category by name
+    public function getByName($name) {
+        return $this->dao->getByName($name);
     }
 }
 ?>

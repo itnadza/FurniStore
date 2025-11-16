@@ -15,7 +15,7 @@ class OrderService extends BaseService {
     }
 
     public function createOrderFromCart($userId, $orderData) {
-      
+        // Validate required fields
         $required = ['shipping_address', 'payment_method'];
         foreach ($required as $field) {
             if (empty($orderData[$field])) {
@@ -23,7 +23,7 @@ class OrderService extends BaseService {
             }
         }
 
-      
+        // Get cart items
         $cartItems = $this->cartService->getCartWithDetails($userId);
         if (empty($cartItems)) {
             throw new Exception("Cart is empty");
@@ -46,30 +46,39 @@ class OrderService extends BaseService {
         $orderData['user_id'] = $userId;
         $orderData['total_amount'] = $totalAmount;
         $orderData['status'] = 'pending';
+        $orderData['order_number'] = 'ORD' . date('YmdHis') . $userId;
 
-        
-        $orderId = $this->dao->create($orderData);
+        // Start transaction
+        try {
+            $this->dao->connection->beginTransaction();
 
-        foreach ($cartItems as $item) {
-            $orderItemData = [
-                'order_id' => $orderId,
-                'product_id' => $item['product_id'],
-                'quantity' => $item['quantity'],
-                'price' => $item['price'],
-                'subtotal' => $item['price'] * $item['quantity']
-            ];
-            
-           
-            $this->dao->addOrderItem($orderItemData);
+            // Create order
+            $orderId = $this->dao->insert($orderData);
 
-         
-            $this->productService->updateStock($item['product_id'], -$item['quantity']);
+            // Create order items and update stock
+            foreach ($cartItems as $item) {
+                $orderItemData = [
+                    'order_id' => $orderId,
+                    'product_id' => $item['product_id'],
+                    'quantity' => $item['quantity'],
+                    'price' => $item['price'],
+                    'subtotal' => $item['price'] * $item['quantity']
+                ];
+                
+                $this->dao->addOrderItem($orderItemData);
+                $this->productService->updateStock($item['product_id'], -$item['quantity']);
+            }
+
+            // Clear the user's cart
+            $this->cartService->clearCart($userId);
+
+            $this->dao->connection->commit();
+            return $orderId;
+
+        } catch (Exception $e) {
+            $this->dao->connection->rollBack();
+            throw new Exception("Failed to create order: " . $e->getMessage());
         }
-
-        // Clear the user's cart
-        $this->cartService->clearCart($userId);
-
-        return $orderId;
     }
 
     public function updateOrderStatus($orderId, $status) {
@@ -97,7 +106,6 @@ class OrderService extends BaseService {
         return $this->dao->update($orderId, ['status' => $status]);
     }
 
-   
     private function restoreOrderStock($orderId) {
         $orderItems = $this->dao->getOrderItems($orderId);
         
@@ -106,7 +114,6 @@ class OrderService extends BaseService {
         }
     }
 
-   
     private function validateOrderStock($orderId) {
         $orderItems = $this->dao->getOrderItems($orderId);
         
@@ -122,12 +129,18 @@ class OrderService extends BaseService {
         }
     }
 
-
     public function getUserOrders($userId) {
-        return $this->dao->getUserOrders($userId);
+        $orders = $this->dao->getByUserId($userId);
+        
+        // Add items to each order
+        foreach ($orders as &$order) {
+            $order['items'] = $this->dao->getOrderItemsWithDetails($order['id']);
+            $order['item_count'] = count($order['items']);
+        }
+        
+        return $orders;
     }
 
-    
     public function getOrderWithDetails($orderId) {
         $order = $this->dao->getById($orderId);
         if (!$order) {
@@ -135,13 +148,14 @@ class OrderService extends BaseService {
         }
 
         $order['items'] = $this->dao->getOrderItemsWithDetails($orderId);
+        $order['item_count'] = count($order['items']);
+        
         return $order;
     }
 
     public function getOrderStatistics($userId = null) {
         return $this->dao->getOrderStatistics($userId);
     }
-
 
     public function validateOrderData($orderData) {
         $errors = [];
@@ -156,10 +170,19 @@ class OrderService extends BaseService {
 
         $allowedPaymentMethods = ['credit_card', 'debit_card', 'paypal', 'cash_on_delivery'];
         if (isset($orderData['payment_method']) && !in_array($orderData['payment_method'], $allowedPaymentMethods)) {
-            $errors[] = "Invalid payment method";
+            $errors[] = "Invalid payment method. Allowed: " . implode(', ', $allowedPaymentMethods);
         }
 
         return $errors;
+    }
+
+    public function getOrdersByStatus($status) {
+        $allowedStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+        if (!in_array($status, $allowedStatuses)) {
+            throw new Exception("Invalid status");
+        }
+        
+        return $this->dao->getOrdersByStatus($status);
     }
 }
 ?>

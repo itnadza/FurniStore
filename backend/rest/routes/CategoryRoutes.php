@@ -29,8 +29,12 @@ Flight::route('GET /categories', function(){
  */
 Flight::route('GET /categories/with-counts', function(){
     $categoryService = new CategoryService();
-    $categories = $categoryService->getCategoriesWithProductCounts();
-    Flight::json(['success' => true, 'data' => $categories]);
+    try {
+        $categories = $categoryService->getCategoriesWithProductCounts();
+        Flight::json(['success' => true, 'data' => $categories]);
+    } catch (Exception $e) {
+        Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
 });
 
 /**
@@ -164,6 +168,38 @@ Flight::route('DELETE /categories/@id', function($id){
         Flight::json(['success' => true, 'message' => 'Category deleted successfully']);
     } catch (Exception $e) {
         Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
+    }
+});
+
+/**
+ * @OA\Get(
+ *     path="/categories/name/{name}",
+ *     tags={"categories"},
+ *     summary="Get category by name",
+ *     @OA\Parameter(
+ *         name="name",
+ *         in="path",
+ *         required=true,
+ *         description="Category name",
+ *         @OA\Schema(type="string", example="Living Room")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Category data"
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Category not found"
+ *     )
+ * )
+ */
+Flight::route('GET /categories/name/@name', function($name){
+    $categoryService = new CategoryService();
+    $category = $categoryService->getByName($name);
+    if ($category) {
+        Flight::json(['success' => true, 'data' => $category]);
+    } else {
+        Flight::json(['success' => false, 'message' => 'Category not found'], 404);
     }
 });
 ?>

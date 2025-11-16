@@ -6,12 +6,12 @@
  *     summary="Get user's orders",
  *     @OA\Response(
  *         response=200,
- *         description="Array of user's orders"
+ *         description="Array of user's orders with details"
  *     )
  * )
  */
 Flight::route('GET /orders', function(){
-    $userId = 1; // Mock user ID
+    $userId = 1; // Mock user ID - replace with actual auth
     $orderService = new OrderService();
     try {
         $orders = $orderService->getUserOrders($userId);
@@ -79,7 +79,14 @@ Flight::route('GET /orders/@id', function($id){
  */
 Flight::route('POST /orders', function(){
     $data = Flight::request()->data->getData();
-    $userId = 1; // Mock user ID
+    $userId = 1; // Mock user ID - replace with actual auth
+    
+    // Validate required fields
+    if (empty($data['shipping_address']) || empty($data['payment_method'])) {
+        Flight::json(['success' => false, 'message' => 'Shipping address and payment method are required'], 400);
+        return;
+    }
+    
     $orderService = new OrderService();
     try {
         $orderId = $orderService->createOrderFromCart($userId, $data);
@@ -120,6 +127,12 @@ Flight::route('POST /orders', function(){
  */
 Flight::route('PUT /orders/@id/status', function($id){
     $data = Flight::request()->data->getData();
+    
+    if (empty($data['status'])) {
+        Flight::json(['success' => false, 'message' => 'Status is required'], 400);
+        return;
+    }
+    
     $orderService = new OrderService();
     try {
         $result = $orderService->updateOrderStatus($id, $data['status']);
@@ -141,13 +154,41 @@ Flight::route('PUT /orders/@id/status', function($id){
  * )
  */
 Flight::route('GET /orders/statistics', function(){
-    $userId = 1; // Mock user ID
+    $userId = 1; // Mock user ID - replace with actual auth
     $orderService = new OrderService();
     try {
         $statistics = $orderService->getOrderStatistics($userId);
         Flight::json(['success' => true, 'data' => $statistics]);
     } catch (Exception $e) {
         Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+});
+
+/**
+ * @OA\Get(
+ *     path="/orders/status/{status}",
+ *     tags={"orders"},
+ *     summary="Get orders by status",
+ *     @OA\Parameter(
+ *         name="status",
+ *         in="path",
+ *         required=true,
+ *         description="Order status",
+ *         @OA\Schema(type="string", example="pending")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Orders with specified status"
+ *     )
+ * )
+ */
+Flight::route('GET /orders/status/@status', function($status){
+    $orderService = new OrderService();
+    try {
+        $orders = $orderService->getOrdersByStatus($status);
+        Flight::json(['success' => true, 'data' => $orders]);
+    } catch (Exception $e) {
+        Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
     }
 });
 ?>
