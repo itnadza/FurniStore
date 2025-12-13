@@ -1,40 +1,36 @@
 <?php
 
 declare(strict_types=1);
-/**
- * Flight: An extensible micro-framework.
- *
- * @copyright   Copyright (c) 2011, Mike Cao <mike@mikecao.com>
- * @license     MIT, http://flightphp.com/license
- */
 
 namespace flight\util;
 
 use ArrayAccess;
-use function count;
 use Countable;
 use Iterator;
 use JsonSerializable;
 
-if (!interface_exists('JsonSerializable')) {
-    require_once __DIR__ . '/LegacyJsonSerializable.php';
-}
-
 /**
  * The Collection class allows you to access a set of data
  * using both array and object notation.
+ *
+ * @license MIT, http://flightphp.com/license
+ * @copyright Copyright (c) 2011, Mike Cao <mike@mikecao.com>
+ * @implements ArrayAccess<string, mixed>
+ * @implements Iterator<string, mixed>
  */
-final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializable
+class Collection implements ArrayAccess, Iterator, Countable, JsonSerializable
 {
     /**
      * Collection data.
+     *
+     * @var array<string, mixed>
      */
     private array $data;
 
     /**
      * Constructor.
      *
-     * @param array $data Initial data
+     * @param array<string, mixed> $data Initial data
      */
     public function __construct(array $data = [])
     {
@@ -44,9 +40,7 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
     /**
      * Gets an item.
      *
-     * @param string $key Key
-     *
-     * @return mixed Value
+     * @return mixed Value if `$key` exists in collection data, otherwise returns `NULL`
      */
     public function __get(string $key)
     {
@@ -56,7 +50,6 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
     /**
      * Set an item.
      *
-     * @param string $key   Key
      * @param mixed  $value Value
      */
     public function __set(string $key, $value): void
@@ -66,10 +59,6 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
 
     /**
      * Checks if an item exists.
-     *
-     * @param string $key Key
-     *
-     * @return bool Item status
      */
     public function __isset(string $key): bool
     {
@@ -78,8 +67,6 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
 
     /**
      * Removes an item.
-     *
-     * @param string $key Key
      */
     public function __unset(string $key): void
     {
@@ -102,13 +89,13 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
     /**
      * Sets an item at the offset.
      *
-     * @param string $offset Offset
+     * @param ?string $offset Offset
      * @param mixed  $value  Value
      */
     #[\ReturnTypeWillChange]
-    public function offsetSet($offset, $value)
+    public function offsetSet($offset, $value): void
     {
-        if (null === $offset) {
+        if ($offset === null) {
             $this->data[] = $value;
         } else {
             $this->data[$offset] = $value;
@@ -118,9 +105,7 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
     /**
      * Checks if an item exists at the offset.
      *
-     * @param string $offset Offset
-     *
-     * @return bool Item status
+     * @param string $offset
      */
     public function offsetExists($offset): bool
     {
@@ -130,7 +115,7 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
     /**
      * Removes an item at the offset.
      *
-     * @param string $offset Offset
+     * @param string $offset
      */
     public function offsetUnset($offset): void
     {
@@ -169,31 +154,23 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
 
     /**
      * Gets the next collection value.
-     *
-     * @return mixed Value
      */
     #[\ReturnTypeWillChange]
-    public function next()
+    public function next(): void
     {
-        return next($this->data);
+        next($this->data);
     }
 
     /**
      * Checks if the current collection key is valid.
-     *
-     * @return bool Key status
      */
     public function valid(): bool
     {
-        $key = key($this->data);
-
-        return null !== $key && false !== $key;
+        return key($this->data) !== null;
     }
 
     /**
      * Gets the size of the collection.
-     *
-     * @return int Collection size
      */
     public function count(): int
     {
@@ -203,7 +180,7 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
     /**
      * Gets the item keys.
      *
-     * @return array Collection keys
+     * @return array<int, string> Collection keys
      */
     public function keys(): array
     {
@@ -213,7 +190,7 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
     /**
      * Gets the collection data.
      *
-     * @return array Collection data
+     * @return array<string, mixed> Collection data
      */
     public function getData(): array
     {
@@ -223,19 +200,15 @@ final class Collection implements ArrayAccess, Iterator, Countable, JsonSerializ
     /**
      * Sets the collection data.
      *
-     * @param array $data New collection data
+     * @param array<string, mixed> $data New collection data
      */
     public function setData(array $data): void
     {
         $this->data = $data;
     }
 
-    /**
-     * Gets the collection data which can be serialized to JSON.
-     *
-     * @return array Collection data which can be serialized by <b>json_encode</b>
-     */
-    public function jsonSerialize(): array
+    #[\ReturnTypeWillChange]
+    public function jsonSerialize()
     {
         return $this->data;
     }

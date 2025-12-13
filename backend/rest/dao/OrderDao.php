@@ -14,7 +14,7 @@ class OrderDao extends BaseDao {
 
     // CUSTOM METHODS
     public function getByUserId($user_id) {
-        $stmt = $this->connection->prepare("SELECT * FROM orders WHERE user_id = :user_id ORDER BY created_at DESC");
+        $stmt = $this->connection->prepare("SELECT * FROM orders WHERE user_id = :user_id ORDER BY order_date DESC");
         $stmt->bindParam(':user_id', $user_id);
         $stmt->execute();
         return $stmt->fetchAll();
@@ -26,7 +26,7 @@ class OrderDao extends BaseDao {
     }
 
     public function addOrderItem($orderItemData) {
-        $sql = "INSERT INTO order_items (order_id, product_id, quantity, price, subtotal) 
+        $sql = "INSERT INTO order_products (order_id, product_id, quantity, price, subtotal) 
                 VALUES (:order_id, :product_id, :quantity, :price, :subtotal)";
         $stmt = $this->connection->prepare($sql);
         $stmt->bindParam(':order_id', $orderItemData['order_id']);
@@ -38,7 +38,7 @@ class OrderDao extends BaseDao {
     }
 
     public function getOrderItems($orderId) {
-        $sql = "SELECT * FROM order_items WHERE order_id = :order_id";
+        $sql = "SELECT * FROM order_products WHERE order_id = :order_id";
         $stmt = $this->connection->prepare($sql);
         $stmt->bindParam(':order_id', $orderId);
         $stmt->execute();
@@ -47,7 +47,7 @@ class OrderDao extends BaseDao {
 
     public function getOrderItemsWithDetails($orderId) {
         $sql = "SELECT oi.*, p.name, p.image_url 
-                FROM order_items oi 
+                FROM order_products oi 
                 JOIN products p ON oi.product_id = p.id 
                 WHERE oi.order_id = :order_id";
         $stmt = $this->connection->prepare($sql);
@@ -67,8 +67,8 @@ class OrderDao extends BaseDao {
                     COUNT(*) as total_orders,
                     SUM(total_amount) as total_spent,
                     AVG(total_amount) as avg_order_value,
-                    MIN(created_at) as first_order_date,
-                    MAX(created_at) as last_order_date
+                    MIN(order_date) as first_order_date,
+                    MAX(order_date) as last_order_date
                     FROM orders 
                     WHERE user_id = :user_id";
             $stmt = $this->connection->prepare($sql);
@@ -91,7 +91,7 @@ class OrderDao extends BaseDao {
     }
 
     public function getOrdersByStatus($status) {
-        $sql = "SELECT * FROM orders WHERE status = :status ORDER BY created_at DESC";
+        $sql = "SELECT * FROM orders WHERE status = :status ORDER BY order_date DESC";
         $stmt = $this->connection->prepare($sql);
         $stmt->bindParam(':status', $status);
         $stmt->execute();
