@@ -52,7 +52,7 @@ class UserDao extends BaseDao {
         ]);
     }
 
-    // Alias for insert to match service calls
+    
     public function create($data) {
         return $this->insert($data);
     }

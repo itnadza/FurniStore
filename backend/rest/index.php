@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . "/middleware/AuthMiddleware.php";
+require_once __DIR__ . '/data/Roles.php'; // ✅ include Roles class
 
 Flight::register('auth_middleware', 'AuthMiddleware');
 
@@ -26,14 +27,16 @@ Flight::register('order_service', 'OrderService');
 require_once __DIR__ . '/services/AuthService.php';
 Flight::register('auth_service', "AuthService");
 
-// Wildcard route for authentication check
+
 Flight::route('/*', function() {
     $url = Flight::request()->url;
     if(strpos($url, '/auth/login') === 0 || strpos($url, '/auth/register') === 0) {
         return TRUE;
     }
     try {
-        $token = Flight::request()->getHeader("Authentication");
+        
+        $authHeader = Flight::request()->getHeader("Authorization");
+        $token = str_replace('Bearer ', '', $authHeader);
         Flight::auth_middleware()->verifyToken($token);
     } catch (\Exception $e) {
         Flight::halt(401, $e->getMessage());
@@ -48,7 +51,7 @@ require_once __DIR__ . '/routes/CartRoutes.php';
 require_once __DIR__ . '/routes/OrderRoutes.php';
 require_once __DIR__ . '/routes/AuthRoutes.php';
 
-// Default route
+
 Flight::route('/', function(){
     echo 'Furnistore API is running!';
 });

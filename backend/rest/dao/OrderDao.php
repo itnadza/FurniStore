@@ -20,7 +20,7 @@ class OrderDao extends BaseDao {
         return $stmt->fetchAll();
     }
 
-    // Alias for insert to match service calls
+    
     public function create($data) {
         return $this->insert($data);
     }
@@ -62,7 +62,7 @@ class OrderDao extends BaseDao {
 
     public function getOrderStatistics($userId = null) {
         if ($userId) {
-            // User-specific statistics
+            
             $sql = "SELECT 
                     COUNT(*) as total_orders,
                     SUM(total_amount) as total_spent,
@@ -74,7 +74,7 @@ class OrderDao extends BaseDao {
             $stmt = $this->connection->prepare($sql);
             $stmt->bindParam(':user_id', $userId);
         } else {
-            // Admin statistics (all orders)
+           
             $sql = "SELECT 
                     COUNT(*) as total_orders,
                     SUM(total_amount) as total_revenue,

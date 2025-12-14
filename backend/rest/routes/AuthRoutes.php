@@ -1,3 +1,4 @@
+
 <?php
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -71,14 +72,13 @@ Flight::group('/auth', function() {
        }
    });
 
-   /**
-    * Example of a protected route (JWT required)
-    * Only admin can access this
-    */
+
+    //Only admin can access this
+    
    Flight::route('GET /admin-only', function() {
        $auth = new AuthMiddleware();
        $token = Flight::request()->headers['Authorization'] ?? null;
-       $token = str_replace('Bearer ', '', $token); // remove "Bearer " prefix
+       $token = str_replace('Bearer ', '', $token); 
        $auth->verifyToken($token);
        $auth->authorizeRole(Roles::ADMIN);
 

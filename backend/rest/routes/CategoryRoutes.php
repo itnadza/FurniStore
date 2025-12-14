@@ -2,7 +2,7 @@
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-// Get all categories (accessible to all authenticated users)
+// accessible to all authenticated users
 Flight::route('GET /categories', function(){
     $categoryService = new CategoryService();
     $categories = $categoryService->getAll();
@@ -31,7 +31,7 @@ Flight::route('GET /categories/with-counts', function(){
     }
 });
 
-// Get category by ID (accessible to all authenticated users)
+
 Flight::route('GET /categories/@id', function($id){
     $categoryService = new CategoryService();
     $category = $categoryService->getById($id);
@@ -42,7 +42,7 @@ Flight::route('GET /categories/@id', function($id){
     }
 });
 
-// Create a new category (admin only)
+//admin only
 Flight::route('POST /categories', function(){
     Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
 
@@ -93,7 +93,7 @@ Flight::route('PUT /categories/@id', function($id){
     }
 });
 
-// Delete category (admin only)
+//admin only
 Flight::route('DELETE /categories/@id', function($id){
     Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
 
@@ -106,7 +106,7 @@ Flight::route('DELETE /categories/@id', function($id){
     }
 });
 
-// Get category by name (accessible to all authenticated users)
+//accessible to all authenticated users
 Flight::route('GET /categories/name/@name', function($name){
     $categoryService = new CategoryService();
     $category = $categoryService->getByName($name);

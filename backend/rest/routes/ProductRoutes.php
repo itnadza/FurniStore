@@ -1,3 +1,4 @@
+
 <?php
 Flight::group('/products', function() {
 

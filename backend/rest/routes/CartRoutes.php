@@ -1,19 +1,29 @@
 <?php
+
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use OpenApi\Annotations as OA;
 
-// Group all cart routes under /cart
+require_once __DIR__ . '/../data/Roles.php';
+require_once __DIR__ . '/../middleware/AuthMiddleware.php';
+require_once __DIR__ . '/../services/CartService.php';
+
+/**
+ * @OA\Tag(
+ *     name="Cart",
+ *     description="Cart management endpoints"
+ * )
+ */
+
 Flight::group('/cart', function() {
 
     /**
      * @OA\Get(
      *     path="/cart",
-     *     tags={"cart"},
-     *     summary="Get user's cart with details",
-     *     @OA\Response(
-     *         response=200,
-     *         description="User's cart items with product details"
-     *     )
+     *     tags={"Cart"},
+     *     summary="Get user's cart",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="User cart returned")
      * )
      */
     Flight::route('GET /', function() {
@@ -24,35 +34,24 @@ Flight::group('/cart', function() {
 
         $userId = Flight::get('user')->id;
         $cartService = new CartService();
-        try {
-            $cart = $cartService->getCartWithDetails($userId);
-            Flight::json(['success' => true, 'data' => $cart]);
-        } catch (Exception $e) {
-            Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        Flight::json(['success' => true, 'data' => $cartService->getCartWithDetails($userId)]);
     });
 
     /**
      * @OA\Post(
      *     path="/cart/add",
-     *     tags={"cart"},
+     *     tags={"Cart"},
      *     summary="Add item to cart",
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
      *             required={"product_id"},
-     *             @OA\Property(property="product_id", type="integer", example=1),
-     *             @OA\Property(property="quantity", type="integer", example=1)
+     *             @OA\Property(property="product_id", type="integer"),
+     *             @OA\Property(property="quantity", type="integer")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Item added to cart"
-     *     ),
-     *     @OA\Response(
-     *         response=400,
-     *         description="Validation error"
-     *     )
+     *     @OA\Response(response=200, description="Item added")
      * )
      */
     Flight::route('POST /add', function() {
@@ -61,41 +60,33 @@ Flight::group('/cart', function() {
         $auth->verifyToken($token);
         $auth->authorizeRole(Roles::USER);
 
-        $userId = Flight::get('user')->id;
         $data = Flight::request()->data->getData();
+        $quantity = $data['quantity'] ?? 1;
 
-        if (!isset($data['product_id'])) {
-            Flight::json(['success' => false, 'message' => 'Product ID is required'], 400);
-            return;
-        }
+        (new CartService())->addToCart(
+            Flight::get('user')->id,
+            $data['product_id'],
+            $quantity
+        );
 
-        $cartService = new CartService();
-        try {
-            $quantity = $data['quantity'] ?? 1;
-            $cartService->addToCart($userId, $data['product_id'], $quantity);
-            Flight::json(['success' => true, 'message' => 'Item added to cart']);
-        } catch (Exception $e) {
-            Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
-        }
+        Flight::json(['success' => true, 'message' => 'Item added to cart']);
     });
 
     /**
      * @OA\Put(
      *     path="/cart/update",
-     *     tags={"cart"},
+     *     tags={"Cart"},
      *     summary="Update cart item quantity",
+     *     security={{"bearerAuth":{}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
-     *             required={"product_id", "quantity"},
-     *             @OA\Property(property="product_id", type="integer", example=1),
-     *             @OA\Property(property="quantity", type="integer", example=2)
+     *             required={"product_id","quantity"},
+     *             @OA\Property(property="product_id", type="integer"),
+     *             @OA\Property(property="quantity", type="integer")
      *         )
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Cart item updated"
-     *     )
+     *     @OA\Response(response=200, description="Item updated")
      * )
      */
     Flight::route('PUT /update', function() {
@@ -104,39 +95,30 @@ Flight::group('/cart', function() {
         $auth->verifyToken($token);
         $auth->authorizeRole(Roles::USER);
 
-        $userId = Flight::get('user')->id;
         $data = Flight::request()->data->getData();
 
-        if (!isset($data['product_id']) || !isset($data['quantity'])) {
-            Flight::json(['success' => false, 'message' => 'Product ID and quantity are required'], 400);
-            return;
-        }
+        (new CartService())->updateCartItem(
+            Flight::get('user')->id,
+            $data['product_id'],
+            $data['quantity']
+        );
 
-        $cartService = new CartService();
-        try {
-            $cartService->updateCartItem($userId, $data['product_id'], $data['quantity']);
-            Flight::json(['success' => true, 'message' => 'Cart item updated']);
-        } catch (Exception $e) {
-            Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
-        }
+        Flight::json(['success' => true, 'message' => 'Cart updated']);
     });
 
     /**
      * @OA\Delete(
      *     path="/cart/remove/{product_id}",
-     *     tags={"cart"},
+     *     tags={"Cart"},
      *     summary="Remove item from cart",
+     *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="product_id",
      *         in="path",
      *         required=true,
-     *         description="Product ID",
-     *         @OA\Schema(type="integer", example=1)
+     *         @OA\Schema(type="integer")
      *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Item removed from cart"
-     *     )
+     *     @OA\Response(response=200, description="Item removed")
      * )
      */
     Flight::route('DELETE /remove/@product_id', function($product_id) {
@@ -145,25 +127,17 @@ Flight::group('/cart', function() {
         $auth->verifyToken($token);
         $auth->authorizeRole(Roles::USER);
 
-        $userId = Flight::get('user')->id;
-        $cartService = new CartService();
-        try {
-            $cartService->removeFromCart($userId, $product_id);
-            Flight::json(['success' => true, 'message' => 'Item removed from cart']);
-        } catch (Exception $e) {
-            Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
-        }
+        (new CartService())->removeFromCart(Flight::get('user')->id, $product_id);
+        Flight::json(['success' => true, 'message' => 'Item removed']);
     });
 
     /**
      * @OA\Delete(
      *     path="/cart/clear",
-     *     tags={"cart"},
-     *     summary="Clear user's cart",
-     *     @OA\Response(
-     *         response=200,
-     *         description="Cart cleared"
-     *     )
+     *     tags={"Cart"},
+     *     summary="Clear cart",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="Cart cleared")
      * )
      */
     Flight::route('DELETE /clear', function() {
@@ -172,25 +146,17 @@ Flight::group('/cart', function() {
         $auth->verifyToken($token);
         $auth->authorizeRole(Roles::USER);
 
-        $userId = Flight::get('user')->id;
-        $cartService = new CartService();
-        try {
-            $cartService->clearCart($userId);
-            Flight::json(['success' => true, 'message' => 'Cart cleared']);
-        } catch (Exception $e) {
-            Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
-        }
+        (new CartService())->clearCart(Flight::get('user')->id);
+        Flight::json(['success' => true, 'message' => 'Cart cleared']);
     });
 
     /**
      * @OA\Get(
      *     path="/cart/total",
-     *     tags={"cart"},
-     *     summary="Calculate cart total",
-     *     @OA\Response(
-     *         response=200,
-     *         description="Cart total amount"
-     *     )
+     *     tags={"Cart"},
+     *     summary="Get cart total",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="Cart total")
      * )
      */
     Flight::route('GET /total', function() {
@@ -199,25 +165,17 @@ Flight::group('/cart', function() {
         $auth->verifyToken($token);
         $auth->authorizeRole(Roles::USER);
 
-        $userId = Flight::get('user')->id;
-        $cartService = new CartService();
-        try {
-            $total = $cartService->calculateCartTotal($userId);
-            Flight::json(['success' => true, 'data' => ['total' => $total]]);
-        } catch (Exception $e) {
-            Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        $total = (new CartService())->calculateCartTotal(Flight::get('user')->id);
+        Flight::json(['success' => true, 'data' => ['total' => $total]]);
     });
 
     /**
      * @OA\Get(
      *     path="/cart/count",
-     *     tags={"cart"},
+     *     tags={"Cart"},
      *     summary="Get cart item count",
-     *     @OA\Response(
-     *         response=200,
-     *         description="Number of items in cart"
-     *     )
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="Item count")
      * )
      */
     Flight::route('GET /count', function() {
@@ -226,15 +184,8 @@ Flight::group('/cart', function() {
         $auth->verifyToken($token);
         $auth->authorizeRole(Roles::USER);
 
-        $userId = Flight::get('user')->id;
-        $cartService = new CartService();
-        try {
-            $count = $cartService->getCartItemCount($userId);
-            Flight::json(['success' => true, 'data' => ['count' => $count]]);
-        } catch (Exception $e) {
-            Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        $count = (new CartService())->getCartItemCount(Flight::get('user')->id);
+        Flight::json(['success' => true, 'data' => ['count' => $count]]);
     });
 
 });
-?>
