@@ -2,7 +2,7 @@
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-// accessible to all authenticated users
+//accessible to all authenticated users
 Flight::route('GET /categories', function(){
     $categoryService = new CategoryService();
     $categories = $categoryService->getAll();
@@ -42,7 +42,7 @@ Flight::route('GET /categories/@id', function($id){
     }
 });
 
-//admin only
+//admin onlyyy
 Flight::route('POST /categories', function(){
     Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
 
