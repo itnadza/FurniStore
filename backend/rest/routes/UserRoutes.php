@@ -1,56 +1,6 @@
-<?php
-/**
- * @OA\Get(
- *     path="/users",
- *     tags={"users"},
- *     summary="Get all users",
- *     @OA\Response(
- *         response=200,
- *         description="Array of all users"
- *     )
- * )
- */
-Flight::route('GET /users', function(){
-    $userService = new UserService();
-    $users = $userService->getAll();
-    foreach ($users as &$user) {
-        unset($user['password']);
-    }
-    Flight::json(['success' => true, 'data' => $users]);
-});
 
-/**
- * @OA\Get(
- *     path="/users/{id}",
- *     tags={"users"},
- *     summary="Get user by ID",
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="User ID",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="User data"
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="User not found"
- *     )
- * )
- */
-Flight::route('GET /users/@id', function($id){
-    $userService = new UserService();
-    $user = $userService->getById($id);
-    if ($user) {
-        unset($user['password']);
-        Flight::json(['success' => true, 'data' => $user]);
-    } else {
-        Flight::json(['success' => false, 'message' => 'User not found'], 404);
-    }
-});
+<?php
+// PUBLIC ROUTES (no role required)
 
 /**
  * @OA\Post(
@@ -67,14 +17,8 @@ Flight::route('GET /users/@id', function($id){
  *             @OA\Property(property="last_name", type="string", example="Doe")
  *         )
  *     ),
- *     @OA\Response(
- *         response=200,
- *         description="User registered successfully"
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Validation error"
- *     )
+ *     @OA\Response(response=200, description="User registered successfully"),
+ *     @OA\Response(response=400, description="Validation error")
  * )
  */
 Flight::route('POST /users/register', function(){
@@ -102,14 +46,8 @@ Flight::route('POST /users/register', function(){
  *             @OA\Property(property="password", type="string", example="password123")
  *         )
  *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Login successful"
- *     ),
- *     @OA\Response(
- *         response=401,
- *         description="Invalid credentials"
- *     )
+ *     @OA\Response(response=200, description="Login successful"),
+ *     @OA\Response(response=401, description="Invalid credentials")
  * )
  */
 Flight::route('POST /users/login', function(){
@@ -123,11 +61,31 @@ Flight::route('POST /users/login', function(){
     }
 });
 
+// PROTECTED ROUTES (require authentication)
+
 /**
- * @OA\Put(
+ * @OA\Get(
+ *     path="/users",
+ *     tags={"users"},
+ *     summary="Get all users (admin only)",
+ *     @OA\Response(response=200, description="Array of all users")
+ * )
+ */
+Flight::route('GET /users', function(){
+    Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
+    $userService = new UserService();
+    $users = $userService->getAll();
+    foreach ($users as &$user) {
+        unset($user['password']);
+    }
+    Flight::json(['success' => true, 'data' => $users]);
+});
+
+/**
+ * @OA\Get(
  *     path="/users/{id}",
  *     tags={"users"},
- *     summary="Update user by ID",
+ *     summary="Get user by ID",
  *     @OA\Parameter(
  *         name="id",
  *         in="path",
@@ -135,25 +93,52 @@ Flight::route('POST /users/login', function(){
  *         description="User ID",
  *         @OA\Schema(type="integer", example=1)
  *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="first_name", type="string", example="John"),
- *             @OA\Property(property="last_name", type="string", example="Smith"),
- *             @OA\Property(property="email", type="string", format="email", example="johnsmith@example.com")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="User updated successfully"
- *     )
+ *     @OA\Response(response=200, description="User data"),
+ *     @OA\Response(response=404, description="User not found")
+ * )
+ */
+Flight::route('GET /users/@id', function($id){
+    $user = Flight::get('user');
+    $userService = new UserService();
+    $targetUser = $userService->getById($id);
+    if (!$targetUser) {
+        Flight::json(['success' => false, 'message' => 'User not found'], 404);
+        return;
+    }
+
+    if ($user->role !== Roles::ADMIN && $user->id != $id) {
+        Flight::halt(403, 'Access denied: cannot view other users');
+    }
+
+    unset($targetUser['password']);
+    Flight::json(['success' => true, 'data' => $targetUser]);
+});
+
+/**
+ * @OA\Put(
+ *     path="/users/{id}",
+ *     tags={"users"},
+ *     summary="Update user by ID",
+ *     @OA\Parameter(name="id", in="path", required=true, description="User ID", @OA\Schema(type="integer", example=1)),
+ *     @OA\RequestBody(required=true, @OA\JsonContent(
+ *         @OA\Property(property="first_name", type="string"),
+ *         @OA\Property(property="last_name", type="string"),
+ *         @OA\Property(property="email", type="string", format="email")
+ *     )),
+ *     @OA\Response(response=200, description="User updated successfully")
  * )
  */
 Flight::route('PUT /users/@id', function($id){
+    Flight::auth_middleware()->authorizeRoles([Roles::ADMIN, Roles::USER]);
+    $user = Flight::get('user');
+    if ($user->role !== Roles::ADMIN && $user->id != $id) {
+        Flight::halt(403, 'Access denied: cannot update other users');
+    }
+
     $data = Flight::request()->data->getData();
     $userService = new UserService();
     try {
-        $result = $userService->update($id, $data);
+        $userService->update($id, $data);
         Flight::json(['success' => true, 'message' => 'User updated successfully']);
     } catch (Exception $e) {
         Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
@@ -165,31 +150,25 @@ Flight::route('PUT /users/@id', function($id){
  *     path="/users/{id}",
  *     tags={"users"},
  *     summary="Partially update user",
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="User ID",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="first_name", type="string", example="John"),
- *             @OA\Property(property="last_name", type="string", example="Smith")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="User partially updated successfully"
- *     )
+ *     @OA\Parameter(name="id", in="path", required=true, description="User ID", @OA\Schema(type="integer", example=1)),
+ *     @OA\RequestBody(required=true, @OA\JsonContent(
+ *         @OA\Property(property="first_name", type="string"),
+ *         @OA\Property(property="last_name", type="string")
+ *     )),
+ *     @OA\Response(response=200, description="User partially updated successfully")
  * )
  */
 Flight::route('PATCH /users/@id', function($id){
+    Flight::auth_middleware()->authorizeRoles([Roles::ADMIN, Roles::USER]);
+    $user = Flight::get('user');
+    if ($user->role !== Roles::ADMIN && $user->id != $id) {
+        Flight::halt(403, 'Access denied: cannot update other users');
+    }
+
     $data = Flight::request()->data->getData();
     $userService = new UserService();
     try {
-        $result = $userService->update($id, $data);
+        $userService->update($id, $data);
         Flight::json(['success' => true, 'message' => 'User partially updated successfully']);
     } catch (Exception $e) {
         Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
@@ -200,21 +179,13 @@ Flight::route('PATCH /users/@id', function($id){
  * @OA\Delete(
  *     path="/users/{id}",
  *     tags={"users"},
- *     summary="Delete user by ID",
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="User ID",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="User deleted successfully"
- *     )
+ *     summary="Delete user by ID (admin only)",
+ *     @OA\Parameter(name="id", in="path", required=true, description="User ID", @OA\Schema(type="integer", example=1)),
+ *     @OA\Response(response=200, description="User deleted successfully")
  * )
  */
 Flight::route('DELETE /users/@id', function($id){
+    Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
     $userService = new UserService();
     $result = $userService->delete($id);
     if ($result) {
@@ -229,33 +200,27 @@ Flight::route('DELETE /users/@id', function($id){
  *     path="/users/{id}/profile",
  *     tags={"users"},
  *     summary="Update user profile",
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="User ID",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             @OA\Property(property="first_name", type="string", example="John"),
- *             @OA\Property(property="last_name", type="string", example="Smith"),
- *             @OA\Property(property="email", type="string", format="email", example="newemail@example.com"),
- *             @OA\Property(property="password", type="string", example="newpassword123")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Profile updated successfully"
- *     )
+ *     @OA\Parameter(name="id", in="path", required=true, description="User ID", @OA\Schema(type="integer", example=1)),
+ *     @OA\RequestBody(required=true, @OA\JsonContent(
+ *         @OA\Property(property="first_name", type="string"),
+ *         @OA\Property(property="last_name", type="string"),
+ *         @OA\Property(property="email", type="string", format="email"),
+ *         @OA\Property(property="password", type="string")
+ *     )),
+ *     @OA\Response(response=200, description="Profile updated successfully")
  * )
  */
 Flight::route('PUT /users/@id/profile', function($id){
+    Flight::auth_middleware()->authorizeRoles([Roles::ADMIN, Roles::USER]);
+    $user = Flight::get('user');
+    if ($user->role !== Roles::ADMIN && $user->id != $id) {
+        Flight::halt(403, 'Access denied: cannot update other user profiles');
+    }
+
     $data = Flight::request()->data->getData();
     $userService = new UserService();
     try {
-        $result = $userService->updateProfile($id, $data);
+        $userService->updateProfile($id, $data);
         Flight::json(['success' => true, 'message' => 'Profile updated successfully']);
     } catch (Exception $e) {
         Flight::json(['success' => false, 'message' => $e->getMessage()], 400);

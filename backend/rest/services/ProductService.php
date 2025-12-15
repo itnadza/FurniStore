@@ -62,7 +62,7 @@ class ProductService extends BaseService {
 
     public function updateStock($productId, $quantityChange) {
         if ($quantityChange == 0) {
-            return true; // No change needed
+            return true; 
         }
 
         $product = $this->dao->getById($productId);

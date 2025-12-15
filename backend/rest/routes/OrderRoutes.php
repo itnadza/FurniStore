@@ -1,194 +1,110 @@
 <?php
-/**
- * @OA\Get(
- *     path="/orders",
- *     tags={"orders"},
- *     summary="Get user's orders",
- *     @OA\Response(
- *         response=200,
- *         description="Array of user's orders with details"
- *     )
- * )
- */
-Flight::route('GET /orders', function(){
-    $userId = 1; // Mock user ID - replace with actual auth
-    $orderService = new OrderService();
-    try {
-        $orders = $orderService->getUserOrders($userId);
-        Flight::json(['success' => true, 'data' => $orders]);
-    } catch (Exception $e) {
-        Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
-    }
-});
+
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use OpenApi\Annotations as OA;
+
+require_once __DIR__ . '/../data/Roles.php';
+require_once __DIR__ . '/../middleware/AuthMiddleware.php';
+require_once __DIR__ . '/../services/OrderService.php';
 
 /**
- * @OA\Get(
- *     path="/orders/{id}",
- *     tags={"orders"},
- *     summary="Get order by ID with details",
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Order ID",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Order details"
- *     ),
- *     @OA\Response(
- *         response=404,
- *         description="Order not found"
- *     )
+ * @OA\Tag(
+ *     name="Orders",
+ *     description="Order management endpoints"
  * )
  */
-Flight::route('GET /orders/@id', function($id){
-    $orderService = new OrderService();
-    try {
-        $order = $orderService->getOrderWithDetails($id);
+
+Flight::group('/orders', function() {
+
+    /**
+     * @OA\Get(
+     *     path="/orders",
+     *     tags={"Orders"},
+     *     summary="Get user orders",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="Orders list")
+     * )
+     */
+    Flight::route('GET /', function() {
+        $token = str_replace('Bearer ', '', Flight::request()->headers['Authorization'] ?? '');
+        Flight::auth_middleware()->verifyToken($token);
+
+        $orders = (new OrderService())->getUserOrders(Flight::get('user')->id);
+        Flight::json(['success' => true, 'data' => $orders]);
+    });
+
+    /**
+     * @OA\Get(
+     *     path="/orders/{id}",
+     *     tags={"Orders"},
+     *     summary="Get order by ID",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response=200, description="Order details")
+     * )
+     */
+    Flight::route('GET /@id', function($id) {
+        $token = str_replace('Bearer ', '', Flight::request()->headers['Authorization'] ?? '');
+        Flight::auth_middleware()->verifyToken($token);
+
+        $order = (new OrderService())->getOrderWithDetails($id);
         Flight::json(['success' => true, 'data' => $order]);
-    } catch (Exception $e) {
-        Flight::json(['success' => false, 'message' => $e->getMessage()], 404);
-    }
-});
+    });
 
-/**
- * @OA\Post(
- *     path="/orders",
- *     tags={"orders"},
- *     summary="Create a new order from cart",
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"shipping_address", "payment_method"},
- *             @OA\Property(property="shipping_address", type="string", example="123 Main St, City, State 12345"),
- *             @OA\Property(property="payment_method", type="string", example="credit_card"),
- *             @OA\Property(property="notes", type="string", example="Leave at front door")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Order created successfully"
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Validation error or cart is empty"
- *     )
- * )
- */
-Flight::route('POST /orders', function(){
-    $data = Flight::request()->data->getData();
-    $userId = 1; // Mock user ID - replace with actual auth
-    
-    // Validate required fields
-    if (empty($data['shipping_address']) || empty($data['payment_method'])) {
-        Flight::json(['success' => false, 'message' => 'Shipping address and payment method are required'], 400);
-        return;
-    }
-    
-    $orderService = new OrderService();
-    try {
-        $orderId = $orderService->createOrderFromCart($userId, $data);
-        Flight::json(['success' => true, 'data' => ['order_id' => $orderId], 'message' => 'Order created successfully']);
-    } catch (Exception $e) {
-        Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
-    }
-});
+    /**
+     * @OA\Post(
+     *     path="/orders",
+     *     tags={"Orders"},
+     *     summary="Create order from cart",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(response=200, description="Order created")
+     * )
+     */
+    Flight::route('POST /', function() {
+        $token = str_replace('Bearer ', '', Flight::request()->headers['Authorization'] ?? '');
+        Flight::auth_middleware()->verifyToken($token);
+        Flight::auth_middleware()->authorizeRole(Roles::USER);
 
-/**
- * @OA\Put(
- *     path="/orders/{id}/status",
- *     tags={"orders"},
- *     summary="Update order status",
- *     @OA\Parameter(
- *         name="id",
- *         in="path",
- *         required=true,
- *         description="Order ID",
- *         @OA\Schema(type="integer", example=1)
- *     ),
- *     @OA\RequestBody(
- *         required=true,
- *         @OA\JsonContent(
- *             required={"status"},
- *             @OA\Property(property="status", type="string", example="shipped")
- *         )
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Order status updated successfully"
- *     ),
- *     @OA\Response(
- *         response=400,
- *         description="Invalid status or order not found"
- *     )
- * )
- */
-Flight::route('PUT /orders/@id/status', function($id){
-    $data = Flight::request()->data->getData();
-    
-    if (empty($data['status'])) {
-        Flight::json(['success' => false, 'message' => 'Status is required'], 400);
-        return;
-    }
-    
-    $orderService = new OrderService();
-    try {
-        $result = $orderService->updateOrderStatus($id, $data['status']);
-        Flight::json(['success' => true, 'message' => 'Order status updated successfully']);
-    } catch (Exception $e) {
-        Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
-    }
-});
+        $orderId = (new OrderService())->createOrderFromCart(
+            Flight::get('user')->id,
+            Flight::request()->data->getData()
+        );
 
-/**
- * @OA\Get(
- *     path="/orders/statistics",
- *     tags={"orders"},
- *     summary="Get order statistics",
- *     @OA\Response(
- *         response=200,
- *         description="Order statistics"
- *     )
- * )
- */
-Flight::route('GET /orders/statistics', function(){
-    $userId = 1; // Mock user ID - replace with actual auth
-    $orderService = new OrderService();
-    try {
-        $statistics = $orderService->getOrderStatistics($userId);
-        Flight::json(['success' => true, 'data' => $statistics]);
-    } catch (Exception $e) {
-        Flight::json(['success' => false, 'message' => $e->getMessage()], 500);
-    }
-});
+        Flight::json(['success' => true, 'data' => ['order_id' => $orderId]]);
+    });
 
-/**
- * @OA\Get(
- *     path="/orders/status/{status}",
- *     tags={"orders"},
- *     summary="Get orders by status",
- *     @OA\Parameter(
- *         name="status",
- *         in="path",
- *         required=true,
- *         description="Order status",
- *         @OA\Schema(type="string", example="pending")
- *     ),
- *     @OA\Response(
- *         response=200,
- *         description="Orders with specified status"
- *     )
- * )
- */
-Flight::route('GET /orders/status/@status', function($status){
-    $orderService = new OrderService();
-    try {
-        $orders = $orderService->getOrdersByStatus($status);
-        Flight::json(['success' => true, 'data' => $orders]);
-    } catch (Exception $e) {
-        Flight::json(['success' => false, 'message' => $e->getMessage()], 400);
-    }
+    /**
+     * @OA\Put(
+     *     path="/orders/{id}/status",
+     *     tags={"Orders"},
+     *     summary="Update order status (ADMIN)",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(response=200, description="Status updated")
+     * )
+     */
+    Flight::route('PUT /@id/status', function($id) {
+        $token = str_replace('Bearer ', '', Flight::request()->headers['Authorization'] ?? '');
+        Flight::auth_middleware()->verifyToken($token);
+        Flight::auth_middleware()->authorizeRole(Roles::ADMIN);
+
+        (new OrderService())->updateOrderStatus(
+            $id,
+            Flight::request()->data->getData()['status']
+        );
+
+        Flight::json(['success' => true, 'message' => 'Order updated']);
+    });
+
 });
-?>

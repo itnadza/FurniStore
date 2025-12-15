@@ -1,31 +1,40 @@
 <?php
 
 declare(strict_types=1);
-/**
- * Flight: An extensible micro-framework.
- *
- * @copyright   Copyright (c) 2011, Mike Cao <mike@mikecao.com>
- * @license     MIT, http://flightphp.com/license
- */
 
 namespace flight\net;
 
 use Exception;
+use flight\core\EventDispatcher;
 
 /**
  * The Response class represents an HTTP response. The object
  * contains the response headers, HTTP status code, and response
  * body.
+ *
+ * @license MIT, http://flightphp.com/license
+ * @copyright Copyright (c) 2011, Mike Cao <mike@mikecao.com>
  */
 class Response
 {
     /**
-     * header Content-Length.
+     * Content-Length header.
      */
     public bool $content_length = true;
 
     /**
-     * @var array HTTP status codes
+     * This is to maintain legacy handling of output buffering
+     * which causes a lot of problems. This will be removed
+     * in v4
+     *
+     * @var boolean
+     */
+    public bool $v2_output_buffering = false;
+
+    /**
+     * HTTP status codes
+     *
+     * @var array<int, ?string> $codes
      */
     public static array $codes = [
         100 => 'Continue',
@@ -97,38 +106,48 @@ class Response
         510 => 'Not Extended',
         511 => 'Network Authentication Required',
     ];
+
     /**
-     * @var int HTTP status
+     * HTTP status
      */
     protected int $status = 200;
 
     /**
-     * @var array HTTP headers
+     * HTTP response headers
+     *
+     * @var array<string,int|string|array<int,string>> $headers
      */
     protected array $headers = [];
 
     /**
-     * @var string HTTP response body
+     * HTTP response body
      */
     protected string $body = '';
 
     /**
-     * @var bool HTTP response sent
+     * HTTP response sent
      */
     protected bool $sent = false;
 
     /**
+     * These are callbacks that can process the response body before it's sent
+     *
+     * @var array<int, callable> $responseBodyCallbacks
+     */
+    protected array $responseBodyCallbacks = [];
+
+    /**
      * Sets the HTTP status of the response.
      *
-     * @param int|null $code HTTP status code.
+     * @param ?int $code HTTP status code.
      *
      * @throws Exception If invalid status code
      *
-     * @return int|object Self reference
+     * @return int|$this Self reference
      */
     public function status(?int $code = null)
     {
-        if (null === $code) {
+        if ($code === null) {
             return $this->status;
         }
 
@@ -144,12 +163,12 @@ class Response
     /**
      * Adds a header to the response.
      *
-     * @param array|string $name  Header name or array of names and values
-     * @param string|null  $value Header value
+     * @param array<string, int|string>|string $name  Header name or array of names and values
+     * @param ?string  $value Header value
      *
-     * @return object Self reference
+     * @return $this
      */
-    public function header($name, ?string $value = null)
+    public function header($name, ?string $value = null): self
     {
         if (\is_array($name)) {
             foreach ($name as $k => $v) {
@@ -163,39 +182,98 @@ class Response
     }
 
     /**
+     * Gets a single header from the response.
+     *
+     * @param string $name the name of the header
+     *
+     * @return string|null
+     */
+    public function getHeader(string $name): ?string
+    {
+        $headers = $this->headers;
+        // lowercase all the header keys
+        $headers = array_change_key_case($headers, CASE_LOWER);
+        return $headers[strtolower($name)] ?? null;
+    }
+
+    /**
+     * Alias of Response->header(). Adds a header to the response.
+     *
+     * @param array<string, int|string>|string $name  Header name or array of names and values
+     * @param ?string  $value Header value
+     *
+     * @return $this
+     */
+    public function setHeader($name, ?string $value): self
+    {
+        return $this->header($name, $value);
+    }
+
+    /**
      * Returns the headers from the response.
      *
-     * @return array
+     * @return array<string, int|string|array<int, string>>
      */
-    public function headers()
+    public function headers(): array
     {
         return $this->headers;
+    }
+
+    /**
+     * Alias for Response->headers(). Returns the headers from the response.
+     *
+     * @return array<string, int|string|array<int, string>>
+     */
+    public function getHeaders(): array
+    {
+        return $this->headers();
     }
 
     /**
      * Writes content to the response body.
      *
      * @param string $str Response content
+     * @param bool $overwrite Overwrite the response body
      *
-     * @return Response Self reference
+     * @return $this Self reference
      */
-    public function write(string $str): self
+    public function write(string $str, bool $overwrite = false): self
     {
+        if ($overwrite === true) {
+            $this->clearBody();
+        }
+
         $this->body .= $str;
 
         return $this;
     }
 
     /**
+     * Clears the response body.
+     *
+     * @return $this Self reference
+     */
+    public function clearBody(): self
+    {
+        $this->body = '';
+        return $this;
+    }
+
+    /**
      * Clears the response.
      *
-     * @return Response Self reference
+     * @return $this Self reference
      */
     public function clear(): self
     {
         $this->status = 200;
         $this->headers = [];
-        $this->body = '';
+        $this->clearBody();
+
+        // This needs to clear the output buffer if it's on
+        if ($this->v2_output_buffering === false && ob_get_length() > 0) {
+            ob_clean();
+        }
 
         return $this;
     }
@@ -203,25 +281,22 @@ class Response
     /**
      * Sets caching headers for the response.
      *
-     * @param int|string $expires Expiration time
+     * @param int|string|false $expires Expiration time as time() or as strtotime() string value
      *
-     * @return Response Self reference
+     * @return $this Self reference
      */
     public function cache($expires): self
     {
-        if (false === $expires) {
+        if ($expires === false || $expires === 0) {
             $this->headers['Expires'] = 'Mon, 26 Jul 1997 05:00:00 GMT';
-            $this->headers['Cache-Control'] = [
-                'no-store, no-cache, must-revalidate',
-                'post-check=0, pre-check=0',
-                'max-age=0',
-            ];
+            $this->headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
             $this->headers['Pragma'] = 'no-cache';
         } else {
             $expires = \is_int($expires) ? $expires : strtotime($expires);
             $this->headers['Expires'] = gmdate('D, d M Y H:i:s', $expires) . ' GMT';
             $this->headers['Cache-Control'] = 'max-age=' . ($expires - time());
-            if (isset($this->headers['Pragma']) && 'no-cache' == $this->headers['Pragma']) {
+
+            if (isset($this->headers['Pragma']) && $this->headers['Pragma'] === 'no-cache') {
                 unset($this->headers['Pragma']);
             }
         }
@@ -232,13 +307,14 @@ class Response
     /**
      * Sends HTTP headers.
      *
-     * @return Response Self reference
+     * @return $this Self reference
      */
     public function sendHeaders(): self
     {
         // Send status code header
-        if (false !== strpos(\PHP_SAPI, 'cgi')) {
-            header(
+        if (strpos(\PHP_SAPI, 'cgi') !== false) {
+            // @codeCoverageIgnoreStart
+            $this->setRealHeader(
                 sprintf(
                     'Status: %d %s',
                     $this->status,
@@ -246,35 +322,38 @@ class Response
                 ),
                 true
             );
+            // @codeCoverageIgnoreEnd
         } else {
-            header(
+            $serverProtocol = Request::getVar('SERVER_PROTOCOL') ?: 'HTTP/1.1';
+            $this->setRealHeader(
                 sprintf(
                     '%s %d %s',
-                    $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1',
+                    $serverProtocol,
                     $this->status,
-                    self::$codes[$this->status]),
+                    self::$codes[$this->status]
+                ),
                 true,
                 $this->status
             );
+        }
+
+        if ($this->content_length === true) {
+            // Send content length
+            $length = $this->getContentLength();
+
+            if ($length > 0) {
+                $this->setHeader('Content-Length', (string) $length);
+            }
         }
 
         // Send other headers
         foreach ($this->headers as $field => $value) {
             if (\is_array($value)) {
                 foreach ($value as $v) {
-                    header($field . ': ' . $v, false);
+                    $this->setRealHeader($field . ': ' . $v, false);
                 }
             } else {
-                header($field . ': ' . $value);
-            }
-        }
-
-        if ($this->content_length) {
-            // Send content length
-            $length = $this->getContentLength();
-
-            if ($length > 0) {
-                header('Content-Length: ' . $length);
+                $this->setRealHeader($field . ': ' . $value);
             }
         }
 
@@ -282,9 +361,27 @@ class Response
     }
 
     /**
-     * Gets the content length.
+     * Sets a real header. Mostly used for test mocking.
      *
-     * @return int Content length
+     * @param string $header_string The header string you would pass to header()
+     * @param bool $replace The optional replace parameter indicates whether the
+     * header should replace a previous similar header, or add a second header of
+     * the same type. By default it will replace, but if you pass in false as the
+     * second argument you can force multiple headers of the same type.
+     * @param int $response_code The response code to send
+     *
+     * @return self
+     *
+     * @codeCoverageIgnore
+     */
+    public function setRealHeader(string $header_string, bool $replace = true, int $response_code = 0): self
+    {
+        header($header_string, $replace, $response_code);
+        return $this;
+    }
+
+    /**
+     * Gets the content length.
      */
     public function getContentLength(): int
     {
@@ -294,7 +391,17 @@ class Response
     }
 
     /**
-     * Gets whether response was sent.
+     * Gets the response body
+     *
+     * @return string
+     */
+    public function getBody(): string
+    {
+        return $this->body;
+    }
+
+    /**
+     * Gets whether response body was sent.
      */
     public function sent(): bool
     {
@@ -302,20 +409,121 @@ class Response
     }
 
     /**
+     * Marks the response as sent.
+     */
+    public function markAsSent(): void
+    {
+        $this->sent = true;
+    }
+
+    /**
      * Sends a HTTP response.
      */
     public function send(): void
     {
-        if (ob_get_length() > 0) {
-            ob_end_clean();
+        // legacy way of handling this
+        if ($this->v2_output_buffering === true) {
+            if (ob_get_length() > 0) {
+                ob_end_clean(); // @codeCoverageIgnore
+            }
         }
 
-        if (!headers_sent()) {
+        $start = microtime(true);
+        // Only for the v3 output buffering.
+        if ($this->v2_output_buffering === false) {
+            $this->processResponseCallbacks();
+        }
+
+        if ($this->headersSent() === false) {
             $this->sendHeaders();
         }
 
         echo $this->body;
-
         $this->sent = true;
+
+        EventDispatcher::getInstance()->trigger('flight.response.sent', $this, microtime(true) - $start);
+    }
+
+    /**
+     * Headers have been sent
+     *
+     * @return bool
+     * @codeCoverageIgnore
+     */
+    public function headersSent(): bool
+    {
+        return headers_sent();
+    }
+
+    /**
+     * Adds a callback to process the response body before it's sent. These are processed in the order
+     * they are added
+     *
+     * @param callable $callback The callback to process the response body
+     *
+     * @return void
+     */
+    public function addResponseBodyCallback(callable $callback): void
+    {
+        $this->responseBodyCallbacks[] = $callback;
+    }
+
+    /**
+     * Cycles through the response body callbacks and processes them in order
+     *
+     * @return void
+     */
+    protected function processResponseCallbacks(): void
+    {
+        foreach ($this->responseBodyCallbacks as $callback) {
+            $this->body = $callback($this->body);
+        }
+    }
+
+    /**
+     * Downloads a file.
+     *
+     * @param string $filePath The path to the file to be downloaded.
+     * @param string $fileName The name the downloaded file should have. If not provided or is an empty string, the name of the file on disk will be used.
+     *
+     * @throws Exception If the file cannot be found.
+     *
+     * @return void
+     */
+    public function downloadFile(string $filePath, string $fileName = ''): void
+    {
+        if (file_exists($filePath) === false) {
+            throw new Exception("$filePath cannot be found.");
+        }
+
+        $fileSize = filesize($filePath);
+
+        $mimeType = mime_content_type($filePath);
+        $mimeType = $mimeType !== false ? $mimeType : 'application/octet-stream';
+
+        // Sanitize filename to prevent header injection
+        $fileName = str_replace(["\r", "\n", '"'], '', $fileName);
+        if ($fileName === '') {
+            $fileName = basename($filePath);
+        }
+
+        $this->send();
+        $this->setRealHeader('Content-Description: File Transfer');
+        $this->setRealHeader('Content-Type: ' . $mimeType);
+        $this->setRealHeader('Content-Disposition: attachment; filename="' . $fileName . '"');
+        $this->setRealHeader('Expires: 0');
+        $this->setRealHeader('Cache-Control: must-revalidate');
+        $this->setRealHeader('Pragma: public');
+        $this->setRealHeader('Content-Length: ' . $fileSize);
+
+        // // Clear the output buffer
+        ob_clean();
+        flush();
+
+        // // Read the file and send it to the output buffer
+        readfile($filePath);
+        if (empty(getenv('PHPUNIT_TEST'))) {
+            exit; // @codeCoverageIgnore
+        }
     }
 }

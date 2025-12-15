@@ -27,7 +27,7 @@ class ProductDao extends BaseDao {
         return $stmt->fetchAll();
     }
 
-    // Alias for insert to match service calls
+   
     public function create($data) {
         return $this->insert($data);
     }

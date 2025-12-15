@@ -1,117 +1,143 @@
 <?php
 
 declare(strict_types=1);
-/**
- * Flight: An extensible micro-framework.
- *
- * @copyright   Copyright (c) 2011, Mike Cao <mike@mikecao.com>
- * @license     MIT, http://flightphp.com/license
- */
 
-use flight\core\Dispatcher;
 use flight\Engine;
 use flight\net\Request;
 use flight\net\Response;
 use flight\net\Router;
 use flight\template\View;
+use flight\net\Route;
+use flight\core\EventDispatcher;
+use Psr\Container\ContainerInterface;
+
+require_once __DIR__ . '/autoload.php';
 
 /**
  * The Flight class is a static representation of the framework.
  *
- * Core.
+ * @license MIT, https://docs.flightphp.com/license
+ * @copyright Copyright (c) 2011-2025, Mike Cao <mike@mikecao.com>, n0nag0n <n0nag0n@sky-9.com>
  *
- * @method  static void start() Starts the framework.
- * @method  static void path($path) Adds a path for autoloading classes.
- * @method  static void stop() Stops the framework and sends a response.
- * @method  static void halt($code = 200, $message = '') Stop the framework with an optional status code and message.
+ * @method static void start()
+ * @method static void path(string $dir)
+ * @method static void stop(int $code = null)
+ * @method static void halt(int $code = 200, string $message = '', bool $actuallyExit = true)
+ * @method static void register(string $name, string $class, array $params = [], callable $callback = null)
+ * @method static void unregister(string $methodName)
+ * @method static void registerContainerHandler($containerHandler)
+ * @method static EventDispatcher eventDispatcher()
+ * @method static Route route(string $pattern, callable $callback, bool $pass_route = false, string $alias = '')
+ * @method static void group(string $pattern, callable $callback, array $group_middlewares = [])
+ * @method static Route post(string $pattern, callable $callback, bool $pass_route = false, string $alias = '')
+ * @method static Route put(string $pattern, callable $callback, bool $pass_route = false, string $alias = '')
+ * @method static Route patch(string $pattern, callable $callback, bool $pass_route = false, string $alias = '')
+ * @method static Route delete(string $pattern, callable $callback, bool $pass_route = false, string $alias = '')
+ * @method static void resource(string $pattern, string $controllerClass, array $methods = [])
+ * @method static Router router()
+ * @method static string getUrl(string $alias, array $params = [])
+ * @method static void map(string $name, callable $callback)
+ * @method static void before(string $name, Closure $callback)
+ * @method static void after(string $name, Closure $callback)
+ * @method static void set($key, $value)
+ * @method static mixed get($key = null)
+ * @method static bool has(string $key)
+ * @method static void clear($key = null)
+ * @method static void render(string $file, array $data = null, string $key = null)
+ * @method static View view()
+ * @method void onEvent(string $event, callable $callback)
+ * @method void triggerEvent(string $event, ...$args)
+ * @method static Request request()
+ * @method static Response response()
+ * @method static void redirect(string $url, int $code = 303)
+ * @method static void json($data, int $code = 200, bool $encode = true, string $charset = "utf8", int $encodeOption = 0, int $encodeDepth = 512)
+ * @method static void jsonHalt($data, int $code = 200, bool $encode = true, string $charset = 'utf-8', int $option = 0)
+ * @method static void jsonp($data, string $param = 'jsonp', int $code = 200, bool $encode = true, string $charset = "utf8", int $encodeOption = 0, int $encodeDepth = 512)
+ * @method static void error(Throwable $exception)
+ * @method static void notFound()
+ * @method static void methodNotFound(Route $route)
+ * @method static void etag(string $id, string $type = 'strong')
+ * @method static void lastModified(int $time)
+ * @method static void download(string $filePath)
  *
- * Routing.
- * @method  static void route($pattern, $callback) Maps a URL pattern to a callback.
- * @method  static Router router() Returns Router instance.
+ * @phpstan-template FlightTemplate of object
+ * @phpstan-method static void register(string $name, class-string<FlightTemplate> $class, array<int|string, mixed> $params = [], (callable(class-string<FlightTemplate> $class, array<int|string, mixed> $params): void)|null $callback = null)
+ * @phpstan-method static void registerContainerHandler(ContainerInterface|callable(class-string<FlightTemplate> $id, array<int|string, mixed> $params): ?FlightTemplate $containerHandler)
+ * @phpstan-method static Route route(string $pattern, callable|string|array{0: class-string, 1: string} $callback, bool $pass_route = false, string $alias = '')
+ * @phpstan-method static void group(string $pattern, callable $callback, (class-string|callable|array{0: class-string, 1: string})[] $group_middlewares = [])
+ * @phpstan-method static Route post(string $pattern, callable|string|array{0: class-string, 1: string} $callback, bool $pass_route = false, string $alias = '')
+ * @phpstan-method static Route put(string $pattern, callable|string|array{0: class-string, 1: string} $callback, bool $pass_route = false, string $alias = '')
+ * @phpstan-method static Route patch(string $pattern, callable|string|array{0: class-string, 1: string} $callback, bool $pass_route = false, string $alias = '')
+ * @phpstan-method static Route delete(string $pattern, callable|string|array{0: class-string, 1: string} $callback, bool $pass_route = false, string $alias = '')
+ * @phpstan-method static void resource(string $pattern, class-string $controllerClass, array<string, string|array<string>> $methods = [])
+ * @phpstan-method static string getUrl(string $alias, array<string, mixed> $params = [])
+ * @phpstan-method static void before(string $name, Closure(array<int, mixed> &$params, string &$output): (void|false) $callback)
+ * @phpstan-method static void after(string $name, Closure(array<int, mixed> &$params, string &$output): (void|false) $callback)
+ * @phpstan-method static void set(string|iterable<string, mixed> $key, mixed $value)
+ * @phpstan-method static mixed get(?string $key)
+ * @phpstan-method static void render(string $file, ?array<string, mixed> $data = null, ?string $key = null)
+ * @phpstan-method static void json(mixed $data, int $code = 200, bool $encode = true, string $charset = "utf8", int $encodeOption = 0, int $encodeDepth = 512)
+ * @phpstan-method static void jsonHalt(mixed $data, int $code = 200, bool $encode = true, string $charset = 'utf-8', int $option = 0)
+ * @phpstan-method static void jsonp(mixed $data, string $param = 'jsonp', int $code = 200, bool $encode = true, string $charset = "utf8", int $encodeOption = 0, int $encodeDepth = 512)
  *
- * Extending & Overriding.
- * @method  static void map($name, $callback) Creates a custom framework method.
- * @method  static void register($name, $class, array $params = array(), $callback = null) Registers a class to a framework method.
- *
- * Filtering.
- * @method  static void before($name, $callback) Adds a filter before a framework method.
- * @method  static void after($name, $callback) Adds a filter after a framework method.
- *
- * Variables.
- * @method  static void set($key, $value) Sets a variable.
- * @method  static mixed get($key) Gets a variable.
- * @method  static bool has($key) Checks if a variable is set.
- * @method  static void clear($key = null) Clears a variable.
- *
- * Views.
- * @method  static void render($file, array $data = null, $key = null) Renders a template file.
- * @method  static View view() Returns View instance.
- *
- * Request & Response.
- * @method  static Request request() Returns Request instance.
- * @method  static Response response() Returns Response instance.
- * @method  static void redirect($url, $code = 303) Redirects to another URL.
- * @method  static void json($data, $code = 200, $encode = true, $charset = "utf8", $encodeOption = 0, $encodeDepth = 512) Sends a JSON response.
- * @method  static void jsonp($data, $param = 'jsonp', $code = 200, $encode = true, $charset = "utf8", $encodeOption = 0, $encodeDepth = 512) Sends a JSONP response.
- * @method  static void error($exception) Sends an HTTP 500 response.
- * @method  static void notFound() Sends an HTTP 404 response.
- *
- * HTTP Caching.
- * @method  static void etag($id, $type = 'strong') Performs ETag HTTP caching.
- * @method  static void lastModified($time) Performs last modified HTTP caching.
+ * Note: IDEs will use standard @method tags for autocompletion, while PHPStan will use @phpstan-* tags for advanced type checking.
  */
 class Flight
 {
     /**
-     * Framework engine.
+     * @var Engine<FlightTemplate>
      */
     private static Engine $engine;
 
-    // Don't allow object instantiation
+    /**
+     * Don't allow object instantiation
+     *
+     * @codeCoverageIgnore
+     * @return void
+     */
     private function __construct()
     {
+        //
     }
 
-    private function __destruct()
-    {
-    }
-
+    /**
+     * Forbid cloning the class
+     *
+     * @codeCoverageIgnore
+     * @return void
+     */
     private function __clone()
     {
+        //
     }
 
     /**
      * Handles calls to static methods.
      *
-     * @param string $name   Method name
-     * @param array  $params Method parameters
-     *
-     * @throws Exception
+     * @param string $name Method name
+     * @param array<int, mixed> $params Method parameters
      *
      * @return mixed Callback results
+     * @throws Exception
      */
     public static function __callStatic(string $name, array $params)
     {
-        $app = self::app();
+        return self::app()->{$name}(...$params);
+    }
 
-        return Dispatcher::invokeMethod([$app, $name], $params);
+    /** @return Engine<FlightTemplate> Application instance */
+    public static function app(): Engine
+    {
+        return self::$engine ?? self::$engine = new Engine();
     }
 
     /**
-     * @return Engine Application instance
+     * Set the engine instance
+     *
+     * @param Engine<FlightTemplate> $engine Vroom vroom!
      */
-    public static function app(): Engine
+    public static function setEngine(Engine $engine): void
     {
-        static $initialized = false;
-
-        if (!$initialized) {
-            require_once __DIR__ . '/autoload.php';
-
-            self::$engine = new Engine();
-
-            $initialized = true;
-        }
-
-        return self::$engine;
+        self::$engine = $engine;
     }
 }

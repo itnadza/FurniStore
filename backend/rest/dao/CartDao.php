@@ -21,10 +21,10 @@ class CartDao extends BaseDao {
     }
 
     public function getCartWithDetails($userId) {
-        $sql = "SELECT c.*, p.name, p.price, p.image_url, p.stock 
-                FROM cart c 
-                JOIN products p ON c.product_id = p.id 
-                WHERE c.user_id = :user_id";
+        $sql = "SELECT c.*, p.name, p.price, p.image_url, p.stock_quantity 
+        FROM cart c 
+        JOIN products p ON c.product_id = p.id 
+        WHERE c.user_id = :user_id";
         $stmt = $this->connection->prepare($sql);
         $stmt->bindParam(':user_id', $userId);
         $stmt->execute();

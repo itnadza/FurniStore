@@ -20,7 +20,7 @@ class CategoryDao extends BaseDao {
         return $stmt->fetch();
     }
 
-    // Alias for getByName to match service calls
+    
     public function getCategoryByName($name) {
         return $this->getByName($name);
     }
@@ -43,7 +43,7 @@ class CategoryDao extends BaseDao {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Alias for insert to match service calls
+    
     public function create($data) {
         return $this->insert($data);
     }

@@ -1,3 +1,4 @@
+
 <?php
 require_once __DIR__ . '/BaseService.php';
 require_once __DIR__ . '/../dao/CartDao.php';
@@ -24,7 +25,7 @@ class CartService extends BaseService {
         }
 
         // Check stock availability
-        if ($product['stock'] < $quantity) {
+        if ($product['stock_quantity'] < $quantity) {
             throw new Exception("Not enough stock available");
         }
 
@@ -49,7 +50,7 @@ class CartService extends BaseService {
 
         // Check product stock if needed
         $product = $this->productDao->getById($productId);
-        if ($product && $product['stock'] < $quantity) {
+        if ($product['stock_quantity'] < $quantity) {
             throw new Exception("Not enough stock available");
         }
 
