@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . "/middleware/AuthMiddleware.php";
-require_once __DIR__ . '/data/Roles.php'; // ✅ include Roles class
+require_once __DIR__ . '/data/Roles.php'; 
 
 Flight::register('auth_middleware', 'AuthMiddleware');
 
@@ -12,7 +12,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Include services
+
 require_once __DIR__ . '/services/BaseService.php';
 require_once __DIR__ . '/services/UserService.php';
 Flight::register('user_service', 'UserService');
@@ -35,7 +35,7 @@ Flight::route('/*', function() {
     }
     try {
         
-        $authHeader = Flight::request()->getHeader("Authorization");
+        $authHeader = Flight::request()->getHeader("Authentication");
         $token = str_replace('Bearer ', '', $authHeader);
         Flight::auth_middleware()->verifyToken($token);
     } catch (\Exception $e) {
@@ -43,7 +43,7 @@ Flight::route('/*', function() {
     }
 });
 
-// Include routes
+
 require_once __DIR__ . '/routes/UserRoutes.php';
 require_once __DIR__ . '/routes/ProductRoutes.php';
 require_once __DIR__ . '/routes/CategoryRoutes.php';

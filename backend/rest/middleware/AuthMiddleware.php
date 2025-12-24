@@ -8,11 +8,11 @@ class AuthMiddleware {
         
         $headers = getallheaders();
 
-        if (!isset($headers['Authorization'])) {
+        if (!isset($headers['Authentication'])) {
             Flight::halt(401, 'Missing authentication header');
         }
 
-        $authHeader = $headers['Authorization'];
+        $authHeader = $headers['Authentication'];
 
         if (!str_starts_with($authHeader, 'Bearer ')) {
             Flight::halt(401, 'Invalid authentication header format');

@@ -9,27 +9,32 @@ class Config
 {
     public static function DB_NAME()
     {
-        return 'furniture_store'; 
+        return Config::get_env('DB_NAME', 'furniture_store'); 
     }
     public static function DB_PORT()
     {
-        return  3309;
+        return Config::get_env('DB_PORT', '3309');
     }
     public static function DB_USER()
     {
-        return 'root';
+        return Config::get_env('DB_USER', 'root');
     }
     public static function DB_PASSWORD()
     {
-        return '';
+        return Config::get_env('DB_PASSWORD', '');
     }
     public static function DB_HOST()
     {
-        return 'localhost';
+        return Config::get_env('DB_HOST', 'localhost');
     }
 
     public static function JWT_SECRET() 
     {
-        return '9453cf215a0e5013d123efa8896fcd9079d63a45';
+        return Config::get_env('JWT_SECRET', '9453cf215a0e5013d123efa8896fcd9079d63a45');
     }
+
+    public static function get_env($name, $default){
+       return isset($_ENV[$name]) && trim($_ENV[$name]) != "" ? $_ENV[$name] : $default;
+   }
+
 }

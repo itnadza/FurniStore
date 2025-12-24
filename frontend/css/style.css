@@ -6,7 +6,10 @@
 */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
-
+#test3{
+  color: red;
+  background-color: #1b6028;
+}
 .hero2 {
   position: relative;
   height: 100vh;

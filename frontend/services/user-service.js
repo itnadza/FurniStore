@@ -66,7 +66,7 @@ var UserService = {
     if (user.role === Constants.ADMIN_ROLE) {
       nav.innerHTML += `
         <li class="nav-item">
-          <a class="nav-link" href="#students">Students</a>
+          <a class="nav-link" href="#products">Products</a>
         </li>
       `;
     }
